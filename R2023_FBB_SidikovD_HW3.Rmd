@@ -1,0 +1,83 @@
+---
+title: "ФББ - R - Домашнее задание №3"
+author: "Данил Сидиков"
+date: "30 09 2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Подгрузка пакетов
+
+
+```{r}
+library('tidyverse') #загрузим установленный пакет tidyverse в текущую R сессию
+```
+***
+# Задание №1
+
+>В ходе некоторого анализа был получен список (вектор) из очень важных функциональных категорий генов - они закодированы с помощью идентификаторов. Однако в векторе оказались смешаны идентификаторы из разных баз данных - Gene Ontology (начинаются на GO:) и KEGG (начинаются на hsa в случае человеческих генов). Разделите этот вектор на два в соотвествии с двумя типами идентификаторов из разных баз данных.
+
+```{r}
+gene_cat <- c("GO:1902222", "hsa00380", "hsa00630", "GO:0006559", "GO:0042773", "hsa00350", "hsa00730", "GO:0051792", "GO:0006572", "GO:0006573", "GO:0032324", "GO:0006390", "GO:0009250", "hsa01212", "GO:0005978")
+gene_cat #Начальный вектор
+gene_cat_GO <- gene_cat[str_detect(gene_cat,"GO")] #отбираем идентификаторы из GO
+gene_cat_KEGG <- gene_cat[str_detect(gene_cat,"hsa")] #отбираем идентификаторы из KEGG
+gene_cat_GO #выведем гены GO
+gene_cat_KEGG #выведем гены KEGG
+``` 
+>У всех этих идентификаторов значимыми являются только несколько последних цифр, которые идут после 0, поэтому давайте их извлечем.
+
+```{r}
+gene_num <- as.numeric(str_remove_all(gene_cat,"GO|hsa|:")) #удалим GO: или KEGG:, затем приведем числа к численному типу, чтобы избавиться от незначащих нулей.
+gene_num # выведем результат
+``` 
+
+# Задание №2
+
+>Из абстрактов молекулярно-биологических статей можно понять, о каких генах преимущественно идет речь в статье. Для каждого из абстрактов вычлените названия генов, которые в них упоминаются. Названия генов, которые мы ищем, содержат все заглавные буквы и цифры и длиной не короче 3 символов.
+
+```{r}
+abstracts <- c(
+  "Atherosclerosis (AS) is one of the main causes of cardiovascular diseases (CVDs). Trimethylamine N-oxide (TMAO) exacerbates the development of AS. This study aimed to investigate the roles of TMAO in AS. In this study, mice were fed with high fat food (HF) and/or injected with TMAO. Oil red O staining was applied for histological analysis. ELISA, qRT-PCR, and western blot were conducted to determine the TMAO, serum, mRNA, and protein levels. CCK-8, colony formation assay, and flow cytometry assays were performed to detect the functions of human aortic endothelial cells (HUVECs). The results showed that TMAO induced thick internal and external walls and intimal plaques in vivo, and HUVECs dysfunction in vitro. TMAO and lncRNA enriched abundant transcript 1 (NEAT1) were increased in AS clinical samples and TMAO-HUVECs. Downregulated NEAT1 inhibited proliferation and promoted the apoptosis of HUVECs. NEAT1 regulated the expression of signal transducer and activator of transcription 3 (STAT3) via sponging miR-370-3p. Overexpression of miR-370-3p facilitated the effects of NEAT1 on the cellular functions of HUVECs, while STAT3 exerted opposing effects. The activation of STAT3 promoted the expression of flavin-containing monooxygenase-3 (FMO3). Taken together, our results show that TMAO-NEAT1/miR-370-3p/STAT3/FMO3 forms a positive feedback loop to exacerbate the development of AS. This novel feedback loop may be a promising therapeutic target for AS.",
+  "RNA G-quadruplexes (rG4s) have functional roles in many cellular processes in diverse organisms. While a number of rG4 examples have been reported in coding messenger RNAs (mRNA), so far only limited works have studied rG4s in non-coding RNAs (ncRNAs), especially in long non-coding RNAs (lncRNAs) that are of emerging interest and significance in biology. Herein, we report that MALAT1 lncRNA contains conserved rG4 motifs, forming thermostable rG4 structures with parallel topology. We also show that rG4s in MALAT1 lncRNA can interact with NONO protein with high specificity and affinity in vitro and in nuclear cell lysate, and we provide cellular data to support that NONO protein recognizes MALAT1 lncRNA via rG4 motifs. Notably, we demonstrate that rG4s in MALAT1 lncRNA can be targeted by the rG4-specific small molecule, peptide, and L-aptamer, leading to the dissociation of MALAT1 rG4-NONO protein interaction. Altogether, this study uncovers new and important rG4s in MALAT1 lncRNAs, reveals their specific interactions with NONO protein, offers multiple strategies for targeting MALAT1 and its RNA-protein complex via its rG4 structure and illustrates the prevalence and significance of rG4s in ncRNAs.",
+  "Automated and accurate EGFR mutation status prediction using computed tomography (CT) imagery is of great value for tailoring optimal treatments to non-small cell lung cancer (NSCLC) patients. However, existing deep learning based methods usually adopt a single task learning strategy to design and train EGFR mutation status prediction models with limited training data, which may be insufficient to learn distinguishable representations for promoting prediction performance. In this paper, a novel multi-task learning method named AIR-Net is proposed to precisely predict EGFR mutation status on CT images. First, an auxiliary image reconstruction task is effectively integrated with EGFR mutation status prediction, aiming at providing extra supervision at the training phase. Particularly, we adequately employ multi-level information in a shared encoder to generate more comprehensive representations of tumors. Second, a powerful feature consistency loss is further introduced to constrain semantic consistency of original and reconstructed images, which contributes to enhanced image reconstruction and offers more effective regularization to AIR-Net during training. Performance analysis of AIR-Net indicates that auxiliary image reconstruction plays an essential role in identifying EGFR mutation status. Furthermore, extensive experimental results demonstrate that our method achieves favorable performance against other competitive prediction methods. All the results executed in this study suggest that the effectiveness and superiority of AIR-Net in precisely predicting EGFR mutation status of NSCLC.",
+  "Driver mutations promote initiation and progression of cancer. Pharmacological treatment can inhibit the action of the mutant protein; however, drug resistance almost invariably emerges. Multiple studies revealed that cancer drug resistance is based upon a plethora of distinct mechanisms. Drug resistance mutations can occur in the same protein or in different proteins; as well as in the same pathway or in parallel pathways, bypassing the intercepted signaling. The dilemma that the clinical oncologist is facing is that not all the genomic alterations as well as alterations in the tumor microenvironment that facilitate cancer cell proliferation are known, and neither are the alterations that are likely to promote metastasis. For example, the common KRasG12C driver mutation emerges in different cancers. Most occur in NSCLC, but some occur, albeit to a lower extent, in colorectal cancer and pancreatic ductal carcinoma. The responses to KRasG12C inhibitors are variable and fall into three categories, (i) new point mutations in KRas, or multiple copies of KRAS G12C which lead to higher expression level of the mutant protein; (ii) mutations in genes other than KRAS; (iii) original cancer transitioning to other cancer(s). Resistance to adagrasib, an experimental antitumor agent exerting its cytotoxic effect as a covalent inhibitor of the G12C KRas, indicated that half of the cases present multiple KRas mutations as well as allele amplification. Redundant or parallel pathways included MET amplification; emerging driver mutations in NRAS, BRAF, MAP2K1, and RET; gene fusion events in ALK, RET, BRAF, RAF1, and FGFR3; and loss-of-function mutations in NF1 and PTEN tumor suppressors. In the current review we discuss the molecular mechanisms underlying drug resistance while focusing on those emerging to common targeted cancer drivers. We also address questions of why cancers with a common driver mutation are unlikely to evolve a common drug resistance mechanism, and whether one can predict the likely mechanisms that the tumor cell may develop. These vastly important and tantalizing questions in drug discovery, and broadly in precision medicine, are the focus of our present review. We end with our perspective, which calls for target combinations to be selected and prioritized with the help of the emerging massive compute power which enables artificial intelligence, and the increased gathering of data to overcome its insatiable needs."
+)
+
+genes <- str_extract_all(abstracts,"[A-Z0-9]{3,}") # возвращаем найденный шаблон(согласно заданию) в каждой строке в список.
+genes <- unlist(genes) # приведем список к вектору.
+genes <- unique(genes) # выделим уникальные значения
+genes
+```
+# Задание №3
+
+>Прочитайте датасет с репликами героев первых пяти серий первого сезона “Ведьмака”, датасет доступен по ссылке **https://raw.githubusercontent.com/kirushka/datasets/main/witcher.csv**. Ссылку можно использовать как путь до файла при чтении датасета в R.
+
+```{r}
+witcher <- read_csv("https://raw.githubusercontent.com/kirushka/datasets/main/witcher.csv")
+head(witcher)
+```
+>Структура данных такая: в начале имена людей - после их реплики.- Построчно
+
+>Посчитайте, какой процент реплик Геральта начинается с его знаменитого “Хм” (по-английски “Hm”).
+
+```{r}
+Ger = filter(witcher,Character == "Geralt") #Все реплики с Геральтом
+ALL <- nrow(Ger) #Число реплик с Геральтом
+ALL
+HM <- nrow(filter(Ger, str_detect(Ger$Text,"^Hm"))) #Число реплик с Геральтом, начинающимся на "Hm".
+HM
+paste(round((HM/ALL)*100,1),"%",sep="") #Выведем процент реплик Геральта начинается с его знаменитого “Хм” (по-английски “Hm”)
+```
+> В скольких репликах Геральт обращается к Плотве (“Roach”)?
+
+```{r}
+Ger = filter(witcher,Character == "Geralt") #Все реплики с Геральтом
+Roach <- filter(Ger, str_detect(Ger$Text,"Roach")) #Реплики с Геральтом со словом "Roach".
+Roach #После лингвистического анализа текста, можно сказать, что Ведьмак обращается к плотве два раза. Хотя сама плотва в его репликах упоминается всего 4 раза.
+nrow(Roach) #плотва в его репликах упоминается всего 4 раза.
+nrow(Roach)-2 #можно сказать, что Ведьмак обращается к плотве два раза.
+```

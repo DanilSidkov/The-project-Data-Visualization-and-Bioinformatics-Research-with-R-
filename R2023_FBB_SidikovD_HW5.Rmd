@@ -1,0 +1,515 @@
+---
+title: "ФББ - R - Домашнее задание №5"
+author: "Данил Сидиков"
+date: "02 10 2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Подгрузка пакетов
+
+
+```{r}
+library('tidyverse') #загрузим установленный пакет tidyverse в текущую R сессию
+```
+***
+# Задание №1
+
+## Задание 1.1
+
+>Ваш коллега собрал данные о том, сколько людей появилось на своих рабочих местах в лаборатории за прошедшую неделю. Давайте изобразим эти данные в виде столбчатой диаграммы. Подпишите график, оси, добавьте цвета, поиграйте с дизайном. Обратите внимание, что дни недели на графике должны идти в правильном порядке (постарайтесь добиться этого самым кратким способом).
+                      
+```{r}
+lab_people <- tibble(
+  day = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+  n_people = c(3, 1, 11, 2, 5, 1, 0))
+
+
+p <- ggplot(lab_people, aes(x = factor(day, levels = day), y = n_people, fill= factor(day, levels = day))) +
+  #Зададим barplot
+    geom_bar(stat = "identity") +
+  #Введем обозначения
+    labs(title="Сколько людей было на работе?", 
+         caption = "Данные: lab_people", 
+         y = "Число сотрудников на рабочем месте") +
+  #Зададим собственную тему
+    theme(plot.background = element_blank(),
+          panel.background = element_rect(fill = "transparent", colour = "gray"),
+          panel.grid.major = element_line(colour = "grey"),
+          plot.title = element_text(size = 20),
+          axis.text = element_text(size = 10, 
+                                   face = "bold"),
+          axis.title.x = element_blank(),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          legend.position = "none")
+p
+``` 
+
+## Задание 1.2
+
+>Соседней лаборатории понравился эксперимент вашего коллеги и они тоже решили собрать данные о количестве людей на рабочих местах в разные дни. Теперь у вас есть данные из двух лабораторий, давайте их визуализируем на одном графике с помощью столбчатой диаграммы. Подпишите график, оси, добавьте цвета, поиграйте с дизайном. Дни недели на графике должны быть указаны в правильном порядке.
+
+```{r}
+lab_people2 <- tibble(
+  lab = c("Great R Visualizations Lab", "The Neighbour's Lab"),
+  Monday = c(3, 5),
+  Tuesday = c(1, 9),
+  Wednesday = c(11, 7),
+  Thursday = c(2, 4),
+  Friday = c(5, 5),
+  Saturday = c(1, 4),
+  Sunday = c(0, 1))
+
+lab2 <- gather(lab_people2, day, count, -lab) #преобразуем в длинный формат
+
+p <- ggplot(lab2, aes(x = factor(day, levels = unique(day)), y = count, fill = lab)) +
+  #Зададим barplot
+    geom_bar(stat = "identity", position = "dodge") +
+  #Введем обозначения
+    labs(title="Сколько людей было на работе?", 
+         caption = "Данные: lab_people2",
+         x = "Дни недели",
+         y = "Число сотрудников на рабочем месте") +
+    labs(fill = "Лаборатории")+
+  #Зададим собственную тему
+    theme(plot.background = element_blank(),
+          panel.background = element_rect(fill = "transparent", colour = "gray"),
+          panel.grid.major = element_line(colour = "grey"),
+          plot.title = element_text(size = 20),
+          axis.text = element_text(size = 10, 
+                                   face = "bold"),
+          axis.title.x = element_blank(),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          legend.position = c(1, 1),
+          legend.justification = c(1, 1),
+          legend.background = element_rect(fill = "lightgreen"),
+          legend.box.background = element_rect(fill = "transparent"))
+p
+``` 
+
+# Задание №2
+
+>Прочитайте датасет про исчезнувшие виды растений по ссылке https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-08-18/plants.csv.
+
+>Изучите датасет!
+
+>Что в нем есть:
+
+- binomial_name - название вида растения,
+- country - страна произрастания,
+- continent - континент произрастания,
+- group - таксономическая группа (Цветковое растение - Flowering plant, и т.д.),
+- year_last_seen - период, когда было замечено в природе последний раз,
+- threat_ и action_ - виды угроз и действий по сохранению вида,
+- red_list_category - категория в Красной книге: Extinct или Extinct in the Wild.
+
+>Больше информации о датасете по ссылке: https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-08-18/readme.md.
+
+>Постройте столбчатую диаграмму числа исчезнувших видов цветковых растений и не-цветковых растений на каждом континенте.
+
+>Пояснения:
+
+- В колонке group оставьте группу Flowering plants (цветковые растения), остальные группы растений объедините в группу Non-flowering plants (не-цветковые растения). Используйте возможности пакета forcats.
+- Посчитайте число исчезнувших видов (Extinct) по каждому континенту, в каждой таксономической группе (Flowering plants и Non-flowering plants).
+- Нарисуйте группированную столбчатую диаграмму (2 отдельных столбца, для Flowering plants и Non-flowering plants, расположенные рядом). По горизонтали расположите континенты.
+- Пусть континенты будут расположены в порядке убывания количества стран на них.
+- Осмысленно подпишите оси.
+- Перенесите легенду наверх, уберите название легенды.
+- Обозначьте Flowering plants желтым и Non-flowering plants зеленым.
+
+```{r}
+plants <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-08-18/plants.csv")
+head(plants) #так выглядят мои данные
+
+plants$group <- fct_collapse(plants$group, #Cгруппируем данные по условию
+             Flowering = "Flowering plants",
+             Non_flowering = c("Non-flowering plants",unique(plants$group)[!(unique(plants$group) %in% "Flowering Plant")]))
+
+plants_summary <- plants %>%  #сформируем датафрейм
+  group_by(continent, group, red_list_category) %>%
+  summarise(count = n()) %>%
+  filter(red_list_category == "Extinct")
+head(plants_summary) #Сформируем датафрейм для формирования графика
+
+by_country <- plants %>% #Сгруппируем данные по континентам и странам на них
+  group_by(continent, country) %>%
+  summarise(count = n()) 
+N <- pull(count(by_country, continent, sort = TRUE)["continent"])
+count(by_country, continent, sort = TRUE) # Упорядочим континенты в порядке убывания количества стран в них в ИСХОДНОМ ДАТАСЕТЕ!!!!!! А не географически
+
+p <- ggplot(plants_summary, aes(x = factor(continent, levels = N), y = count, fill = factor(group, levels = unique(plants$group)))) +
+  #Зададим barplot
+    geom_bar(stat = "identity", position = "dodge") +
+  #Введем обозначения
+    labs(title="?", 
+         caption = "Данные: plants.csv",
+         x = "Continent",
+         y = "Number of extinct species") +
+    scale_fill_manual(values = c("yellow","darkgreen"), 
+                      labels = c("Flowering Plants","Non-flowering plants"))  +
+  #Масштабируем оси графика
+    scale_y_continuous(trans='log10') + 
+  #Зададим собственную тему
+    theme(plot.background = element_blank(),
+          panel.background = element_rect(fill = "transparent", colour = "gray"),
+          panel.grid.major = element_line(colour = "grey"),
+          plot.title = element_blank(),
+          axis.text = element_text(size = 10, 
+                                   face = "bold"),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          legend.position = "top",
+          legend.title = element_blank())
+p
+
+
+
+```
+
+
+# Задание №3
+
+>Загрузите датасет, содержащий динамику использования сои в пищевой и непищевой промышленности за несколько последних десятков лет. Ссылка для скачивания: https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-04-06/soybean_use.csv.
+
+>Изучите датасет! Про него можно прочитать дополнительно, например, здесь: https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-04-06/readme.md.
+
+>Информация про датасет:
+
+- entity - континент, часть континента или страна,
+- code - код страны,
+- year - год,
+- human_food - сколько сои было использованно в пищевой промышленности (в тоннах),
+- animal_feed - сколько сои было использовано в производстве кормов для животных (в тоннах),
+- processed - сколько сои было использовано в непищевой промышленности (производство биотоплива и т.д.) (в тоннах).
+
+>Отберите для анализа данные только по 6 континентам: c("Africa", "Europe", "Asia", "Northern America", "South America", "Australia & New Zealand"), за 33 года - 1981-2013. 
+>Нарисуйте столбчатую диаграмму, которая бы изображала среднее количество сои по трем типам промышленности, использованной за 33 года на всех 6 обитаемых континентах. Изобразите разброс 3/4 SD (чтобы линии разброса выровнялись со столбцами, возможно, вам понадобится параметр position = position_dodge(width = 0.9)). Отсортируйте континенты по среднему количеству сои, использованной во всех областях промышленности за исследуемый период. Логарифмируйте ось Y с помощью подходящей функции scale_y_*. Измените формат числовых подписей по оси Y.
+
+>Добавьте осознанные названия осей. Поверните названия континентов, чтобы они отображались целиком, на 45 градусов. Уберите название легенды и поменяйте цвета (например, на c("#ffb4a2", "#e5989b", "#b5838d")) и названия категорий промышленности в легенде (чтобы было более приятно читать).
+
+
+```{r}
+#Прочитаем данные
+soa <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-04-06/soybean_use.csv") #Прочитаем датасет
+
+#Покажем данные
+head(soa)
+
+#Отберем данные по условию
+soaf <- filter(soa,between(year, 1981,2013) & (entity %in% c("Africa", "Europe", "Asia","Northern America", "South America", "Australia & New Zealand")))
+
+#Сгруппируем данные и найдем средние по континетам и по типам промышленности
+bart <- soaf %>% 
+    group_by(entity) %>% 
+    summarise(
+        human_food = mean(human_food),
+        animal_feed = mean(animal_feed),
+        processed = mean(processed)
+    )
+#Отсортируем по сумме средних значений
+bart <- bart %>% 
+    arrange(desc(human_food + animal_feed + processed))
+
+#Cгруппируем данные по SD
+bart_sd <- soaf %>% 
+    group_by(entity) %>% 
+    summarise(
+        human_food = 3*sd(human_food, na.rm = TRUE)/4,
+        animal_feed = 3*sd(animal_feed, na.rm = TRUE)/4,
+        processed = 3*sd(processed, na.rm = TRUE)/4
+    )
+#Преобразуем в длинный формат
+barts <- gather(bart, type, avg, -entity) 
+bartsd <- gather(bart_sd, type, sd, -entity)
+
+#Итоговые датасет
+soy <- right_join(barts, bartsd, by = c("entity","type"))
+
+soy #Выведем данные итогового датасета
+p <- ggplot(soy, 
+            aes(x = factor(entity, levels = bart$entity), 
+                y = avg,
+                ymin = avg - sd,
+                ymax = avg + sd,
+                fill = factor(type, levels = c("animal_feed","human_food","processed")))) +
+  #Зададим barplot
+    geom_bar(stat = "identity", position = "dodge") +
+    geom_errorbar(width = 0.2, position = position_dodge(width = 0.9)) + 
+  #Масштабируем оси и установим метки
+    scale_y_continuous(trans='log10', labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
+  #Введем обозначения
+    labs(title="?", 
+         caption = "Данные: soybean_use.csv",
+         x = "Continent",
+         y = "Average soy use (t) 1981-2013") +
+    scale_fill_manual(values = c("#ffb4a2", "#e5989b", "#b5838d"), 
+                      labels = c("Animal Feed","Human food","Processed"))  +
+ 
+  #Зададим собственную тему    
+
+    theme(plot.background = element_blank(),
+          panel.background = element_rect(fill = "transparent", colour = "gray"),
+          panel.grid.major = element_line(colour = "grey"),
+          plot.title = element_blank(),
+          axis.text.x = element_text(angle = 45, hjust=1),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          axis.title.x = element_blank(),
+        
+
+          legend.position = "right",
+          legend.title = element_blank())
+
+p
+
+```
+
+
+
+# Задание №4
+
+## Задание №4.1
+
+>Напишите функцию, которая бы рассчитывала ядерно-цитоплазматическое соотношение (“N:C” или “karyoplasmic” ratio) по формуле $\frac{NucleusVol}{CellVol}$, где **NucleusVol** - объем ядра (мкм3), **CellVol** - объем клетки (мкм3).
+
+>На небольшом примере продемонстрируйте работу этой функции.
+
+
+```{r}
+NC <- function(NucleusVol, CellVol) { #Инициализируем функцию
+  NucleusVol/CellVol
+}
+NC(100,1000) #Продемонстрируем работу функции
+
+```
+
+## Задание №4.2
+
+>Прочитайте данные по размерам ядер и клеток разных организмов из разнообразных таксономических групп, они находятся по ссылке https://raw.githubusercontent.com/kirushka/datasets/main/NC_ratio.csv. Эти данные взяты из статьи Malerba et al. 2021.
+
+>В прочитанном датафрейме 4 столбца:
+
+- SpeciesGroup - название таксономической группы,
+- Species - видовое название организма,
+- NucleusVol - объем ядра (мкм3),
+- CellVol - объем клетки (мкм3).
+
+>Используя функцию, которую вы создали в предыдущем задании, посчитайте ядерно-цитоплазматическое соотношение (“N:C” или “karyoplasmic” ratio) для каждого организма - запишите результат в новый столбец.
+
+>Также преобразуйте строковый столбец SpeciesGroup в столбец с факторами. Отсортируйте уровни фактора по убыванию медианного значения NC ratio.
+
+
+```{r}
+#Прочитаем данные
+nucel <- read_csv("https://raw.githubusercontent.com/kirushka/datasets/main/NC_ratio.csv") 
+head(nucel) #Вот такие данные
+#Запишем результат в NqC
+nuc <- nucel %>%
+  mutate(NqC = NC(NucleusVol,CellVol))
+#Преобразуем в столбец с факторами по убыванию медианного значения NC ratio
+nuc <- nuc %>%
+  mutate(SpeciesGroup = fct_reorder(SpeciesGroup, NqC, .fun = median, .desc = TRUE))
+head(nuc)
+```
+
+## Задание №4.3
+
+>По модифицированному датафрейму постройте точковую диаграмму, на которой по оси X отложен объем клеток, по оси Y - NC ratio, цветом показана таксономическая группа.
+
+>Добавьте на график линии тренда, построенные с помощью линейной регрессии, для каждой таксономической группы с помощью geom_smooth(method = "lm").
+
+>Чтобы использовать на графиках “математические” обозначения, греческие буквы и т.п., например, в подписях осей, можно использовать функцию expression, которой подать на вход все выражение без кавычек. Например, так: ggplot(...) + labs(x = expression(Cell~volume~(mu*m^3))).
+
+>Для настройки “tick labels”, т.е. подписей интервалов на осях, можно использовать пакет scales. Например, scale_x_log10(labels =  scales::label_math(format = log10)) преобразит подписи по оси X в формат вида 
+. Поэкспериментируйте и с другими вариантами отображения этих подписей.
+
+>Поменяйте цветовую палитру графика.
+
+
+```{r}
+p <- ggplot(data=nuc,
+       mapping=aes(x = CellVol, 
+                   y = NqC,
+                   color = SpeciesGroup)) +
+  #Зададим порядок значений и стиль точек
+    geom_point(shape=19, 
+               size=1, 
+               alpha=0.8, 
+               stroke=1) +
+    geom_smooth(method = "lm") + #Линия тренда
+    #Масштабируем оси и установим метки
+    scale_y_continuous(trans='log10', labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
+    scale_x_continuous(trans='log10', labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
+  #Введем легенду по цветам и значениям
+    #scale_fill_manual(values = c("#33CC33", "#FF0000","#0000FF","#FFCC00","black"), 
+    #                  labels = c("Herbivora","Insectivora","Omnivora","Carnivora","NO DATA")) +
+  #Введем обозначения
+    labs(title="Bigger animals sleep less", 
+         caption = "Данные: NC_ratio.csv", 
+         x = expression(Cell~volume~(mu*m^3)), 
+         y = "N:C ratio") +
+  
+  #Зададим собственную тему    
+
+    theme(plot.background = element_blank(),
+          panel.background = element_rect(fill = "transparent", colour = "gray"),
+          panel.grid.major = element_line(colour = "grey"),
+          plot.title = element_blank(),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          legend.position = "right",
+          legend.title = element_blank())
+p
+
+
+```
+
+## Задание №4.4
+
+>Разделите график из задания 4.3 на “панельки” с помощью facet_wrap, так чтобы каждая таксономическая группа оказалась на своем графике.
+
+
+```{r}
+p <- ggplot(data=nuc,
+       mapping=aes(x = CellVol, 
+                   y = NqC,
+                   color = SpeciesGroup)) +
+  #Зададим порядок значений и стиль точек
+    geom_point(shape=19, 
+               size=1, 
+               alpha=0.8, 
+               stroke=1) +
+    geom_smooth(method = "lm") + #Линия тренда
+    facet_wrap(~ SpeciesGroup) + #Разобьем график
+    #Масштабируем оси и установим метки
+    scale_y_continuous(trans='log10', labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
+    scale_x_continuous(trans='log10', labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
+  #Введем легенду по цветам и значениям
+    #scale_fill_manual(values = c("#33CC33", "#FF0000","#0000FF","#FFCC00","black"), 
+    #                  labels = c("Herbivora","Insectivora","Omnivora","Carnivora","NO DATA")) +
+  #Введем обозначения
+    labs(title="Bigger animals sleep less", 
+         caption = "Данные: nuc", 
+         x = expression(Cell~volume~(mu*m^3)), 
+         y = "N:C ratio") +
+  
+  #Зададим собственную тему    
+
+    theme(plot.background = element_blank(),
+          panel.background = element_rect(fill = "transparent", colour = "grey"),
+          panel.grid.major = element_line(colour = "grey"),
+          plot.title = element_blank(),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          strip.background = element_rect(fill = "lightgreen"),
+          legend.position = "none",
+          legend.title = element_blank())
+p
+
+
+```
+
+
+# Задание #5
+
+
+>Напишите несколько функций для моделирования подбрасывания кубика.
+
+
+## Задание #5.1
+
+
+>Напишите функцию, которая возвращает результат подбрасывания одного “честного” шестигранного кубика. Продемонстрируйте работу функции. Нужно ли устанавливать seed?
+
+```{r}
+
+flip_di1 <- function() {
+  sides <- 1:6
+  sample(sides, 1)
+}
+set.seed(123)
+flip_di1()
+set.seed(300)
+flip_di1()
+#Внутри функции устанавливать seed не имеет смысла, если хотите воспроизвести результаты этой функции, то установите seed перед вызовом этой функции.
+```
+
+
+## Задание #5.2
+
+
+>Напишите функцию, которая возвращает результат подбрасывания двух “честных” шестигранных кубиков. Продемонстрируйте работу функции.
+
+```{r}
+
+flip_di2 <- function() {
+  sides <- 1:6
+  list(sample(sides, 2, replace = TRUE))
+}
+set.seed(123)
+flip_di2()
+set.seed(300)
+flip_di2()
+```
+
+
+## Задание #5.3
+
+
+>Напишите функцию, которая возвращает результат подбрасывания нескольких “честных” шестигранных кубиков. Число кубиков задается параметром n. Продемонстрируйте работу функции.
+
+```{r}
+flip_din <- function(n) {
+  sides <- 1:6
+  list(sample(sides, n, replace = TRUE))
+}
+set.seed(123)
+flip_din(5)
+set.seed(300)
+flip_din(10)
+
+```
+
+
+## Задание #5.4
+
+
+>Напишите функцию, которая возвращает результат подбрасывания “честного” кубика с заданным числом граней. Число граней задается параметром sides. Продемонстрируйте работу функции.
+
+```{r}
+flip_dis <- function(sides) {
+  sidesz <- 1:sides
+  list(sample(sidesz, 1, replace = TRUE))
+}
+set.seed(123)
+flip_dis(5)
+set.seed(300)
+flip_dis(10)
+
+
+```
+
+
+## Задание #5.5
+
+
+>Напишите функцию, которая возвращает результат подбрасывания нескольких “честного” кубиков с заданным числом граней. Число граней задается параметром sides (пусть по умолчанию оно будет равно 6). Число кубиков задается параметром n. Продемонстрируйте работу функции.
+
+```{r}
+flip_disn <- function(sides=6,n) {
+  sidesz <- 1:sides
+  list(sample(sidesz, n, replace = TRUE))
+}
+set.seed(123)
+flip_disn(n=5, sides=10)
+set.seed(300)
+flip_disn(n=10, sides = 20)
+set.seed(300)
+flip_disn(n=10)
+
+```

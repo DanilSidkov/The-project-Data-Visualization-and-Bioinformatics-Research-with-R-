@@ -1,0 +1,102 @@
+---
+title: "ФББ - R - Домашнее задание №9"
+author: "Данил Сидиков"
+date: "07 12 2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Подгрузка пакетов
+
+
+```{r}
+library(org.Hs.eg.db) #загрузим установленный пакет в текущую R сессию
+library(biomaRt)
+library(AnnotationHub)
+library(ggplot2)
+```
+
+# Задание №1
+
+>Воспользуйтесь пакетом с аннотацией генов человека org.Hs.eg.db. Найдите ENSEMBL и UNIPROT идентификаторы для генов STAT1 и SERPINE1. Что это за гены - посмотрите на GENENAME? Опишите ваши находки.
+
+
+```{r}
+ensembl_ids <- select(org.Hs.eg.db, keys = c("STAT1", "SERPINE1"), columns = c("ENSEMBL", "UNIPROT"), keytype = "SYMBOL")
+print(ensembl_ids)
+
+gene_names <- select(org.Hs.eg.db, keys = c("STAT1", "SERPINE1"), columns = "GENENAME", keytype = "SYMBOL")
+print(gene_names)
+```
+>STAT1: signal transducer and activator of transcription 1
+>SERPINE1: serpin family E member 1
+
+# Задание №2
+
+>Воспользуйтесь пакетом с аннотацией генов человека org.Hs.eg.db. Переведите все содержащиеся в org.Hs.eg.db ENTREZ-идентификаторы генов в символьные названия SYMBOL и ENSEMBL идентификаторы с помощью функции AnnotationDbi::select().
+
+>Произошла ли однозначная конвертация идентификаторов? Если нет, то у скольких генов возникла такая проблема?
+
+
+```{r}
+all_genes <- select(org.Hs.eg.db, keys = keys(org.Hs.eg.db), columns = c("SYMBOL", "ENSEMBL"))
+
+duplicates <- all_genes[duplicated(all_genes$SYMBOL) | duplicated(all_genes$ENSEMBL), ]
+if (nrow(duplicates) > 0) {
+ print("One or more genes have multiple ENTREZ identifiers.")
+ print(duplicates)
+} else {
+ print("All genes have unique ENTREZ identifiers.")
+}
+```
+
+# Задание №3
+
+>BioMart отлично справляется с конвертацией идентификаторов генов, например, человека, однако он может быть еще полезен при конвертации идентификатров между разными организмами (определении ортологов).
+
+>Допустим, вы нашли интересную статью, где результаты были получены с использованием мышиной модели. Вы же работате с человеческими клеточными линиями, но все же хотели бы проверить выводы статьи на ваших данных. В таком случае вам нужно идентификаторы генов мыши перевести в идентификаторы генов человека.
+
+>Для решения такой задачи удобнее всего создать два mart объекта - для мыши и человека. А затем с помощью функции getLDS() получить информацию из двух связанных объектов.
+
+>Если вы получаете следующую ошибку, попробуйте при создании mart объектов указать параметр host: например, host = "https://jul2023.archive.ensembl.org/".
+
+
+```{r}
+human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+human
+mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+mouse
+
+mouse_genes <- c("Hdac2", "Timeless", "Prkcg", "Hlf", "Sin3a", "Ogt", "Id3", "Csnk1d", "Cdk5", "Ep300", "Cipc", "Relb")
+human_genes <- getLDS(attributes = c("mgi_symbol"), filters = "mgi_symbol", values = mouse_genes, mart = mouse, attributesL = c("hgnc_symbol", "ensembl_gene_id"), martL = human, uniqueRows=T)
+mouse_genes
+human_genes
+
+human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl", host = "https://dec2021.archive.ensembl.org/")
+mouse <- useMart("ensembl", dataset = "mmusculus_gene_ensembl", host = "https://dec2021.archive.ensembl.org/")
+human
+mouse
+
+```
+
+# Задание №4
+
+>Давайте обратимся к базе данных генов человека Ensembl версии 98 (это можно сделать как с помощью biomaRt, так и с помощью AnnotationHub - выбирайте по своему вкусу) и изучим характеристики всех генов разных биотипов (белок-кодирующие, lncRNA и т.д.). Получите значения длин генов и постройте графики распределения для разных биотипов.
+
+
+```{r}
+#создадим объект mart для человека:
+human <- useMart("ensembl", dataset = "hsapiens_gene_ensembl", host = "https://dec2021.archive.ensembl.org/")
+
+#используем функцию getLDS() для получения длин генов и биотипов для всех генов
+gene_lengths <- getLDS(attributes = c("biotype", "length"), mart = human)
+
+#гистограмма распределения длин генов для каждого биотипа
+ggplot(gene_lengths, aes(x = length, fill = biotype)) +
+ geom_histogram(position = "identity", alpha = 0.5, bins = 30) +
+ theme_bw() +
+ labs(x = "Gene length", y = "Count", fill = "Biotype")
+```

@@ -1,0 +1,329 @@
+---
+title: "ФББ - R - Домашнее задание №4"
+author: "Данил Сидиков"
+date: "01 10 2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Подгрузка пакетов
+
+
+```{r}
+library('tidyverse') #загрузим установленный пакет tidyverse в текущую R сессию
+```
+***
+# Задание №1
+
+>Возьмите встроенный датасет **msleep** - в нем содержится информация о времени сна и бодрствования различных животных. Больше информации об этом датасете можно узнать в справке **?msleep**.
+
+>С помощью диаграммы рассеяния изобразите зависимость общей длительности сна **(sleep_total)** от логарифма веса животного **(bodywt)**. Пояснения:
+
+- Цветом обозначьте, чем животное питается (vore).
+- Измените порядок названий категорий в легенде (на любой отличный от дефолтного).
+- Переместите легенду наверх графика.
+- Подпишите оси, добавьте название графика.
+- Подберите цветовую палитру.
+
+>Сохраните график в подходящем размере и удобном вам формате.
+                      
+```{r}
+
+p <- ggplot(data=msleep,
+       mapping=aes(x = log10(bodywt), 
+                   y = sleep_total)) +
+  #Зададим порядок значений и стиль точек
+    geom_point(aes(fill = factor(vore, levels = c("herbi", "insecti", "omni","carni", NA))), 
+               shape=21, 
+               size=3, 
+               alpha=0.8, 
+               stroke=1) +
+  #Введем легенду по цветам и значениям
+    scale_fill_manual(values = c("#33CC33", "#FF0000","#0000FF","#FFCC00","black"), 
+                      labels = c("Herbivora","Insectivora","Omnivora","Carnivora","NO DATA")) +
+  #Введем обозначения
+    labs(title="Bigger animals sleep less", 
+         caption = "Данные: msleep", 
+         x = "Log10 of body weight(kg)", 
+         y = "Total sleep(h)") +
+  #Зададим собственную тему
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 10, 
+                                   face = "bold"),
+          axis.title = element_text(size = 15, 
+                                    face = "bold"),
+          panel.grid.major = element_line(color = "grey", 
+                                          linewidth = 1),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          legend.position = "top", 
+          legend.title=element_blank())
+p
+#Сохраним график
+ggsave(
+  "figures/sleepandmass.png", p, 
+  dpi = 300, width = 20, height = 10, units = "cm")
+
+``` 
+
+
+
+# Задание №2
+
+>Возьмите встроенный датасет starwars - в нем содержится информация о персонажах вселенной Звездные Войны. Больше информации об этом датасете можно узнать в справке **?starwars**.
+
+>Отберите 2 планеты **(homeworld)**, которые являются родиной самого большого количества героев ЗВ. Отберите только тех персонажей, которые происходят с этих двух планет, и постройте **график дотплот** (с помощью функции geom_point()), который бы показывал **вес (mass)** персонажей разных **рас (species)**. **По оси X - вес тела, по Y - раса (species)**, каждая точка - один персонаж. Цветом точки покажите **гендерную идентичность героя (gender)** информацию о расе, размером точки - его **рост (height)**.
+
+>Подпишите оси, добавьте название графика и подберите цветовую палитру.
+
+>Сохраните график в подходящем размере и удобном вам формате.
+
+```{r}
+most <- as.data.frame(table(starwars$homeworld)) #Сформируем DataFrame планет по популярности
+head(arrange(most, desc(Freq)), n=3) #Выведем топ 3
+Planet1 <- as.character(arrange(most, desc(Freq))[1,'Var1']) #Занесем в переменные две самые популярные планеты
+Planet2 <- as.character(arrange(most, desc(Freq))[2,'Var1'])
+Planet1
+Planet2
+Hero <- starwars %>%
+    filter((homeworld == Planet1 | homeworld == Planet2)& !is.na(species)) #Отберем героев с этих двух планет
+
+g <- ggplot(data=Hero,
+       mapping=aes(x = mass, 
+                   y = species)) +
+  #Зададим стиль точек
+    geom_point(aes(fill = gender, size = height), #размер-рост, наполнение-цвет 
+               shape=21, 
+               alpha=0.8, 
+               stroke=1) +
+  #Зададим обозначения
+    labs(title="Species", 
+         caption = "Данные: starwars", 
+         x = "Body mass (kg)", 
+         y = "Species") +
+    labs(fill = "Gender Identity", size="Height (cm)")+ 
+  #Зададим собственную тему
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 10, 
+                                   face = "bold"),
+          axis.title = element_text(size = 15, 
+                                    face = "bold"),
+          panel.grid.major = element_line(color = "grey", 
+                                          linewidth = 1),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          legend.position = "right")
+g
+#Cохраним график
+ggsave(
+  "figures/homeworld.png", g, 
+  dpi = 300, width = 20, height = 10, units = "cm")
+
+```
+
+
+# Задание №3
+
+>Прочитайте датасет о напитках из Старбакса по ссылке https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-12-21/starbucks.csv.
+
+>В этом датасете содержатся столбцы:
+
+- product_name - наименование напитка,
+- size - размер (категория),
+- milk - тип молока:
+  - 0 - без молока,
+  - 1 - обезжиренное молоко,
+  - 2 - 2% молоко,
+  - 3 - соевое молоко,
+  - 4 - кокосовое молоко,
+  - 5 - цельное молоко,
+- whip - добавляют ли сливки (0/1),
+- serv_size_m_l - объем напитка (мл),
+- calories - калории (ккал),
+- total_fat_g - содержание жира (г),
+- saturated_fat_g - содержание насыщенных жиров (г),
+- trans_fat_g - содержание транс-жиров (г),
+- cholesterol_mg - содержание холестерина (мг),
+- sodium_mg - содержание натрия (мг),
+- total_carbs_g - содержание углеводов (г),
+- fiber_g- содержание пищевых волокон (г),
+- sugar_g - содержание сахара (г),
+- caffeine_mg - содержание кофеина (мг).
+
+>Отберите только напитки, подходящие под следующие условия:
+
+- напитки, приготовляемые без молока, 2% молоке или соевом молоке,
+- напитки объемом 473 мл,
+- не бескалорийные напитки,
+- напитки, содержащие кофеин.
+
+>С помощью диаграммы рассеяния изобразите зависимость содержание кофеина **(caffeine_mg)** от калорийности напитка **(calories)**. Цветом обозначьте тип молока.
+
+>На графике обозначьте **пунктирной линией (используйте geom_hline(..., linetype = "dashed"), например)** самое частое (мода) для отобранных напитков значение содержания кофеина. Поменяйте порядок задаваемых геометрических объектов **(geom_*)**, чтобы линия проходила под точками.
+
+>Поменяйте отображаемые по осям значения так, чтобы интервал между ними составлял 50. Это можно сделать с помощью **scale_x_continuous(breaks = *вектор с отображаемыми значениями*)** и **scale_y_continuous(breaks = *вектор с отображаемыми значениями*)**.
+
+>Пусть в легенде будут перечислены категории напитков следующим образом:
+
+- напитки без молока - no milk
+- напитки на 2% молоке - 2% milk
+- напитки на соевом молоке - soy milk
+
+> Подпишите оси, добавьте название графика и подберите цветовую палитру.
+
+> Сохраните график в подходящем размере и удобном вам формате.
+
+
+```{r}
+#Прочитаем данные
+drinks <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-12-21/starbucks.csv") #Прочитаем датасет
+#Покажем данные
+head(drinks)
+
+
+fil_drinks <- drinks %>% #отберем напитки по условию
+  filter((milk == 0 | milk == 2 | milk == 3) & (serv_size_m_l == 473) & (calories>0) & (caffeine_mg>0))
+#Покажем их
+head(fil_drinks)
+
+m <- as.data.frame(table(fil_drinks$caffeine_mg)) #Создаем датасет с частотой значений
+moda <- as.numeric(as.character(arrange(m,desc(Freq))[1,'Var1'])) #Самое популярное значение заносим в переменную moda.
+
+fd <- ggplot(data=fil_drinks,
+             mapping=aes(x = calories, 
+                         y = caffeine_mg)) +
+  #Построим пунктирную линию моды значений кофе
+    geom_hline(yintercept = moda, linetype = "dashed") + 
+    geom_point(aes(fill = factor(milk, levels = c(0,2,3))), #Зададим порядок значений
+               shape=21, 
+               alpha=0.8, 
+               stroke=1) +
+  #Сопоставим цвета и обозначения на графике
+    scale_fill_manual(values = c("#33CC33", "#FF0000","#0000FF"), 
+                      labels = c("No milk","2% milk","soy milk")) +
+  #Введем обозначения
+    labs(title="Dependent caffeine(mg) from calories", 
+         caption = " https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-12-21/starbucks.csv", 
+         x = "Calories", 
+         y = "Caffeine (mg)") +
+    labs(fill = "Type of milk") +
+  #Масштабируем оси графика
+    scale_x_continuous(breaks = seq(from=0,to=500,by=50)) +
+    scale_y_continuous(breaks = seq(from=0,to=400,by=50)) +
+  #Зададим собственную тему
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 10, 
+                                   face = "bold"),
+          axis.title = element_text(size = 15, 
+                                    face = "bold"),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          legend.position = "right")
+fd
+#Сохраним график
+ggsave(
+  "figures/drinks.png", fd, 
+  dpi = 300, width = 20, height = 10, units = "cm")
+
+```
+
+
+
+# Задание №4
+
+>Использйуте датасет про напитки из Старбакса из задания 2.
+
+>На одном графике постройте гиcтограмму и плотность распределения содержания сахара во всех напитках. **geom_histogram и geom_density** преобразовывают ваши данные и отрисовывают либо каунты, либо плотность. Найдите способ, чтобы оба **geom_** отрисовывали значения по оси Y согласованно.
+
+>Подпишите оси, добавьте название графика. Подберите цветовую палитру.
+
+>Сохраните график в подходящем размере и удобном вам формате.
+
+
+```{r}
+
+hd <- ggplot(drinks, aes(x = sugar_g)) +
+  #Консолидируем гистрамму с плотностью по количеству наблюдений
+    geom_histogram(binwidth = 1,color="orange", fill = "sandybrown", alpha=0.5)+
+    geom_density(aes(y = ..count..),color="orange",fill = "white", alpha = 0.3)+
+  #Зададим обозначения
+    labs(title="Sugar content in Starbucks drinks",
+         caption = " https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-12-21/starbucks.csv", 
+         x = "Sugar (g)", 
+         y = "Count") +
+  #Масштабируем оси графика
+    scale_x_continuous(breaks = seq(from=0,to=100,by=25)) +
+    scale_y_continuous(breaks = seq(from=0,to=100,by=30)) +
+  #Зададим собственную тему
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 10, 
+                                   face = "bold"),
+          axis.title = element_text(size = 15, 
+                                    face = "bold"),
+          axis.ticks = element_line(color = "black", 
+                                    linewidth = 1),
+          legend.position = "right")
+hd
+#Сохраним график
+ggsave(
+  "figures/histdrinks.png", hd, 
+  dpi = 300, width = 20, height = 10, units = "cm")
+
+
+```
+
+# Задание №5
+
+>Загрузите датасет, содержащий информацию про **цветение сакуры в Японии за 1953-2019 года**. https://raw.githubusercontent.com/tacookson/data/master/sakura-flowering/sakura-modern.csv.
+
+>Изучите датасет! Про него можно прочитать дополнительно, например, здесь: https://github.com/tacookson/data/blob/master/sakura-flowering/README.md.
+
+>Информация про датасет:
+
+- station_id - ID метеостанции (города),
+- station_name - название города, где эта метеостанция расположена,
+- latitude, longitude - широта и долгота метеостанции,
+- year - год,
+- flower_date - дата начала цветения сакуры,
+- flower_doy - день с начала года, когда началось цветение сакуры,
+- full_bloom_date - дата полного цвета сакуры,
+- full_bloom_doy - день с начала года, на который пришелся полный цвет сакуры.
+
+>Визуализируйте, как шел фронт цветения сакуры в Японии в разные годы, с помощью линейного графика - используйте **geom_line**. По горизонтали отложите года, по вертикали - дату или день начала цветения/полного цвета. Каждая кривая - это один город. Не забудьте сообщить, что вы решили визуализировать (какие переменные), в названиях осей и в названии графика.
+
+>Сохраните график в подходящем размере и удобном вам формате.
+
+
+```{r}
+#Прочитаем данные
+sak <- read_csv("https://raw.githubusercontent.com/tacookson/data/master/sakura-flowering/sakura-modern.csv") #Прочитаем датасет
+#Удалим значения с NA
+sak <- na.omit(sak)
+#Покажем значения 
+head(sak)
+#Выделим город Киото
+sak$highlight <- ifelse(sak$station_name == 'Kyoto', 'Kyoto', 'Others')
+
+s <- ggplot(data=sak, mapping=aes(x = year, y = flower_doy, group=station_name, color=highlight))+
+    geom_line(aes(alpha=ifelse(highlight == "Kyoto", 1, 0.5))) + #Выделим по прозрачности города
+    scale_color_manual(values=c("Kyoto"="blue", "Other"="grey90")) + #Выделим по цвету
+    guides(alpha = "none") + #Уберем легенду с ifelse
+  # Добавим обозначения
+    labs(title="Sakura Flowering in Japan (1953-2019)", 
+         caption = "https://raw.githubusercontent.com/tacookson/data/master/sakura-flowering/sakura-modern.csv", 
+         x = "Year", 
+         y = "Day of the year when sakura started to bloom",
+         color="City") +
+    theme_minimal() 
+    
+s
+#Сохраним график
+ggsave(
+  "figures/sakura.png", s, 
+  dpi = 300, width = 20, height = 10, units = "cm")
+
+
+```

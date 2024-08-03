@@ -1,0 +1,225 @@
+---
+title: "ФББ - R - Домашнее задание №7"
+author: "Данил Сидиков"
+date: "25 10 2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Подгрузка пакетов
+
+
+```{r}
+library('tidyverse') #загрузим установленный пакет tidyverse в текущую R сессию
+library(pheatmap)
+library("ggVennDiagram")
+library(UpSetR)
+library(ggalt)
+library(ggplotify)
+
+```
+
+# Задание №1
+
+>Прочитайте данные о динамике количества семей медоносных пчел в разных штатах США. Они доступны по ссылке https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-01-11/colony.csv
+
+>Изучите датасет!
+
+>Что в нем есть:
+
+- year - год,
+- months - квартал года,
+- state - штат США, либо страна США целиком (“United States”), либо другие страны (“Other States”),
+- colony_n - число пчелиных семей на начало квартала этого года,
+- colony_max - максимальное число семей в этом квартале года,
+- colony_lost - число погибших пчелиных семей,
+- colony_lost_pct - процент семей, которые погибли за этот квартал,
+- colony_added - число новых семей,
+- colony_reno - число обновленных семей,
+- colony_reno_pct - процент обновленных семей.
+
+>Постройте график lollipop plot, показывающий количество семей пчел в разных штатах США на начало 2015 года. Удобнее будет расположить штаты по вертикальной оси, а число семей - по горизонтальной оси. Поработайте над оформлением графика: добавьте заголовок графику, подпишите названия осей, добавьте на график цвета.
+
+>Сохраните график.
+
+```{r}
+#Подгрузим файл
+file <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-01-11/colony.csv')
+#Отберем нужный фрагмент и определим цвета
+file1 <- file[1:45,]
+file1$col <- c(1:45)
+colours <- colorRampPalette(c("yellow", "red"))(45)
+#Построим график
+plot <- ggplot(file1, aes(x = reorder(state, colony_n), y = colony_n, color = reorder(state, colony_n))) + 
+  geom_lollipop() +                           
+  theme_classic() +
+  labs(title = "Number of honey bee colonies \nat the beginning of the year 2015")  + #Установим подписи и их формат
+  scale_y_continuous(trans='log10', labels = scales::trans_format("log10", scales::math_format(10^.x)), breaks = c(1, 100, 10000, 1000000)) +
+  scale_color_manual(values = colours) + #Зададим тему и цвета
+  theme(legend.position = "none",                                                     
+         legend.key = element_rect(fill = "white", colour = "black"),                 
+         legend.text = element_text(size = 12),                                       
+         axis.text = element_text(size = 5, color = colours),
+         axis.title.x = element_blank(),
+         axis.title.y = element_blank(),
+         plot.title = element_text(hjust = 0.5, colour = "red"),
+         axis.line = element_blank(),
+         axis.ticks = element_blank ()) +
+  coord_flip() #Повернем координаты
+
+plot
+
+ggsave("bee.jpg", plot = plot) #Сохраним файл в формате .jpg
+
+
+
+```
+
+
+
+
+# Задание №2
+
+>Воспользуйтесь тем же набором данных про пчел, что и в задании 1. Постройте график, который бы показывал, сколько пчелиных семей погибало в течение зимних (January-March) и летних месяцев (July-September) по всем США (удалите из данных 2021 год, так как наблюдения по нему неполные). Можно было бы использовать группированную столбчатую диаграмму для создания такого графика, однако лучше такие данные (два числа - за зиму и лето - которые мы хотим сравнивать) визуализировать с помощью точек, соединенных линией, показывающей разницу между ними (Cleveland dotplot, см. пример графика в google форме). Задайте для зимних и летних значений числа погибших пчелиных семей разные цвета и разукрасьте линии, соединяющие точки, в зависимости от того, летом или зимой погибло больше семей в этом году. Подпишите названия осей, добавьте название графика.
+
+>Сохраните график.
+
+```{r}
+bee_data <- file #подгрузим файл
+#Отфильтруем данные согласно указаниям
+bee_data <- bee_data %>%
+  filter(months == "January-March" | months == "July-September", year < 2021, state == "United States")
+#Сгруппируем данные и создадим новую колонки
+bee_data <- bee_data %>%
+  group_by(year) %>%
+  mutate(more_losses = ifelse(sum(colony_lost[months == "January-March"]) > sum(colony_lost[months == "July-September"]), 
+                              "Winter", "Summer"))
+
+#Построим график
+plot <- ggplot(bee_data, aes(x = colony_lost, y = factor(year))) +
+  geom_line(aes(group = year, color = more_losses)) + #Добавим линии 
+  geom_point(aes(color = months), size = 3, show.legend = FALSE) + #Добавим точки
+  #Добавим подписи и их формат
+  labs(x = "Year", y = "Number of Bee Colonies Lost", 
+       title = "Bee Colony Losses in Winter and Summer Across the US") +
+  scale_color_manual(values = c("Winter" = "red", "Summer" = "yellow", "January-March" = "black", "July-September" = "yellow"),
+                     labels = c("Summer months\n(July-September)","Winter months\n(January-March)","","")) +
+  scale_x_continuous(breaks = c(350000, 400000, 450000, 500000), limits = c(350000, 550000)) + 
+  labs(x = "Number of lost bee colonies", y = "Year", 
+       title = "Bee Colony Losses in Winter and Summer Across the US",
+       color = "Season") + 
+  #Зададим тему графика
+  theme(legend.position = "top",
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        plot.title = element_blank(),
+        axis.text = element_text(size = 15),
+        axis.title = element_text(size = 15),
+        axis.ticks = element_blank ()) + 
+  guides(color = guide_legend(override.aes = list(colour = c("yellow", "red", NA, NA))))
+
+plot
+
+ggsave("bee2.jpg", plot = plot, width=10, height=6, dpi=300) #Сохраним файл в формате .jpg
+
+```
+
+
+# Задание №3
+
+>Воспользуйтесь тем же набором данных про пчел, что и в задании 1. Постройте тепловую карту, которая бы показывала процент погибших семей (colony_lost_pct) по разным штатам в течение времени. Постройте дендрограмму для штатов. А также разбейте штаты на 4 группы по количеству семей на начало 2015 года (можно разбить на квартили, например, с помощью функции cut_number()). Добавьте эту информацию в качестве аннотации на тепловую карту.
+
+>Сохраните график.
+
+```{r}
+bee3 <- file #подгрузим файл
+#отфильтруем данные и объединим столбцы
+bee3 <- bee3 %>%
+  filter(state != 'United States', state != 'Other States') %>%
+  select(year, months, state, colony_lost_pct) %>%
+  unite(year, months, col="y_m", sep=" ")
+#приведем к широкому формату
+bee3_fil <- pivot_wider(bee3, names_from = y_m, values_from = c(colony_lost_pct))
+#вектор штатов
+state <- bee3_fil$state
+#создадим датафрейм аннотаций и список цветов
+Q <- as.character(cut_number(bee3[1:45,"colony_lost_pct"], 4, labels = c(1,2,3,4))) %>% as.data.frame() #я выбрал по квартилям
+rownames(Q) <- state
+colnames(Q) <- "Quartile"
+Q_color <- list(Quartile = c("1" = "white", "2" = "lightgreen", "3" = "#00a851", "4" = "darkgreen"))
+#удалим ненужный столбец
+bee3_fil <- bee3_fil %>%
+  select(-c(state))
+rownames(bee3_fil) <- state
+#построим график с заданными параметрами внешнего вида
+plot <- pheatmap(bee3_fil, cluster_cols = FALSE, cluster_rows = TRUE, labels_row = state, color = colorRampPalette(c("yellow", "darkred"))(45), cellwidth = 12, border_color = "black", annotation_row = Q, annotation_colors = Q_color, annotation_names_row = FALSE)
+
+plot
+
+ggsave("bee3.jpg", plot = plot, width = 15) #Сохраним файл в формате .jpg
+
+```
+
+# Задание №4
+
+>Отрисуйте диаграмму Венна, которая бы показывала количества штатов, которые потеряли более 20% пчелиных семей (colony_lost_pct) в 2019, 2020 и 2021 годах. То есть множествами, которые вы сравниваете, будут 3 списка штатов - каждый для своего года.
+
+>Сохраните график.
+
+```{r}
+bee4 <- file #подгрузим файл
+#разнесем данные по годам
+q2019 <- bee4 %>% filter(year == 2019, colony_lost_pct > 20) %>% pull(state) 
+
+q2020 <- bee4 %>% filter(year == 2020, colony_lost_pct > 20) %>% pull(state)
+
+q2021 <- bee4 %>% filter(year == 2021, colony_lost_pct > 20) %>% pull(state)
+
+
+#построим график Вьенна и заданными параметрами
+plot <- ggVennDiagram(list(q2019, q2020, q2021), color = "red", category.names = c("2019", "2020","2021")) +
+  scale_fill_gradient(low = "white", high = "tomato2")
+
+plot
+
+ggsave("bee4.jpg", plot = plot) #Сохраним файл в формате .jpg
+```
+
+
+
+
+# Задание №5
+
+>Используйте график Upset для того, чтобы показать количества штатов, которые потеряли более 20% пчелиных семей (colony_lost_pct) за все года наблюдений.
+
+>Сохраните график.
+
+```{r}
+#Чтобы вспомнить, разнесем данные по всем годам согласно условиям
+q2019 <- bee4 %>% filter(year == 2019, colony_lost_pct > 20) %>% pull(state) 
+
+q2020 <- bee4 %>% filter(year == 2020, colony_lost_pct > 20) %>% pull(state)
+
+q2021 <- bee4 %>% filter(year == 2021, colony_lost_pct > 20) %>% pull(state)
+
+q2015 <- bee4 %>% filter(year == 2015, colony_lost_pct > 20) %>% pull(state) 
+
+q2016 <- bee4 %>% filter(year == 2016, colony_lost_pct > 20) %>% pull(state) 
+
+q2017 <- bee4 %>% filter(year == 2017, colony_lost_pct > 20) %>% pull(state)
+
+q2018 <- bee4 %>% filter(year == 2018, colony_lost_pct > 20) %>% pull(state)
+#Построим графики
+plot <- upset(fromList(list("2021" = q2021, "2020" = q2020, "2019" = q2019, "2018" = q2018, 
+                    "2017" = q2017, "2016" = q2016, "2015" = q2015)), nsets = 7,
+      order.by = "freq", #порядок по убыванию встречаемости
+      sets.bar.color = colorRampPalette(c("yellow","red", "black"))(7), #цветовая гамма для минибара
+      main.bar.color = "black", matrix.color = "black") #цветовая гамма для бигбара
+plot
+#Сохраним график
+ggsave('bee5.jpg', ggplotify::as.ggplot(plot), width = 15)
+```
+
